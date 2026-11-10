@@ -1,0 +1,6 @@
+{
+  "name": "STServo",
+  "version": "2.0.0",
+  "description": "Portable multi-ID FT-SCS/STS servo bus with abstract serial and time transport",
+  "build": { "srcDir": "src" }
+}

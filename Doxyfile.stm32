@@ -1,0 +1,4 @@
+@INCLUDE = Doxyfile
+INPUT += ../../stservo/include/stm32_stservo_transport.hpp ../../stservo/src/stm32_stservo_transport.cpp
+OUTPUT_DIRECTORY = build/docs-stm32
+WARN_LOGFILE = build/docs-stm32/warnings.log
