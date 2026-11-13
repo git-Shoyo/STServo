@@ -142,6 +142,17 @@ public:
      * 角度制限・分解能は変更しません。保存にはEEPROMの解除・再ロックが必要です。
      */
     Reply setPositionMode(std::uint8_t id, WriteResponse response = WriteResponse::None);
+    /** @brief 単回転の目標位置をレジスタ0x2a/0x2bへ書き込みます。
+     * @param id 宛先ID。ACK不要の場合はブロードキャストも使用できます。
+     * @param position 目標位置（0～4095）。範囲外は送信せずINVALID_ARGUMENTを返します。
+     * @param response サーボの応答設定に合わせたACK方針。
+     * @return 通信結果。正常ACKは目標への到達を意味しません。
+     * @note 位置モードとトルクONを別途設定してください。移動速度はsetVelocity()で指定します。
+     * 通常の分解能1では2048が約180°です。角度制限・分解能は変更しません。
+     * 多回転・符号付き目標にはwriteRegister()を使用してください。
+     */
+    Reply setPosition(std::uint8_t id, std::uint16_t position,
+                      WriteResponse response = WriteResponse::None);
     /** @brief IDレジスタ（0x05）を書き換えます。ACKを待たず、新IDで読み戻して確認してください。
      * @param id 現在の個別ID（0～253）。ブロードキャストは拒否します。
      * @param new_id 変更先の個別ID（0～253）。使用中のIDは指定しないでください。

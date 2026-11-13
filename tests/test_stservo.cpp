@@ -112,6 +112,31 @@ static void control_register_helpers() {
     CHECK(bus.setEepromLocked(1,false).ok()); CHECK(f.writes.back()[5]==0x37 && f.writes.back()[6]==0);
     CHECK(bus.setEepromLocked(1,true).ok()); CHECK(f.writes.back()[6]==1);
 }
+static void position_targets() {
+    Fake f; STServo bus(f);
+    auto r=bus.setPosition(1,2048);
+    CHECK(r.ok() && !r.status_received);
+    CHECK(f.writes.back()==Bytes({255,255,1,5,3,0x2a,0,8,0xc4}));
+    CHECK(bus.setPosition(2,0).ok());
+    CHECK(f.writes.back()==Bytes({255,255,2,5,3,0x2a,0,0,0xcb}));
+    f.scripts={status(2)};
+    r=bus.setPosition(2,4095,STServo::WriteResponse::Required);
+    CHECK(r.ok() && r.status_received && !r.servo_error && r.id==2);
+    CHECK(f.writes.back()==Bytes({255,255,2,5,3,0x2a,255,15,0xbd}));
+    f.scripts={status(1,8)};
+    r=bus.setPosition(1,2048,STServo::WriteResponse::Required);
+    CHECK(r.ok() && r.status_received && r.servo_error==8);
+    const auto count=f.writes.size();
+    CHECK(bus.setPosition(1,4096).result==Result::INVALID_ARGUMENT);
+    CHECK(bus.setPosition(1,65535).result==Result::INVALID_ARGUMENT);
+    CHECK(bus.setPosition(255,0).result==Result::INVALID_ARGUMENT);
+    CHECK(bus.setPosition(254,0,STServo::WriteResponse::Required).result==Result::INVALID_ARGUMENT);
+    CHECK(f.writes.size()==count);
+    CHECK(bus.setPosition(254,2048).ok());
+    CHECK(f.writes.back()[2]==254);
+    f.echo=true; bus.setEchoMode(STServo::EchoMode::LocalEcho);
+    CHECK(bus.setPosition(1,1024).ok()); CHECK(f.position==f.pending.size());
+}
 static void id_change_validation_and_readback() {
     Fake f; STServo bus(f);
     CHECK(bus.setId(1,2).ok());
@@ -227,7 +252,7 @@ int main() {
         {"multi ID result isolation",multi_id_results}, {"noise/other ID/fragmentation",other_id_noise_and_fragments},
         {"checksum/length recovery",checksum_and_length_recovery}, {"timeout/tick wrap",timeout_wrap_and_wrong_id},
         {"read/error output commit",read_commit_and_servo_error}, {"write/ACK policy",writes_and_ack_policy},
-        {"control helpers",control_register_helpers}, {"ID change/readback",id_change_validation_and_readback},
+        {"control helpers",control_register_helpers}, {"position targets",position_targets}, {"ID change/readback",id_change_validation_and_readback},
         {"sync velocity wire packet",sync_velocity_golden_packet}, {"sync validation",sync_validation},
         {"signed velocity limits",signed_velocity_limits}, {"echo/real servo ERROR=1",echo_mode_and_real_error_one},
         {"no-ACK local echo drain",local_echo_no_ack_is_consumed}, {"transport failures",transport_failures}, {"argument boundaries",invalid_arguments},

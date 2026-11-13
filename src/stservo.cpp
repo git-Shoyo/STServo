@@ -118,6 +118,12 @@ STServo::Reply STServo::setPositionMode(std::uint8_t id, WriteResponse response)
     const std::uint8_t mode = 0;
     return writeRegister(id, 0x21, &mode, 1, response);
 }
+STServo::Reply STServo::setPosition(std::uint8_t id, std::uint16_t position, WriteResponse response) {
+    if (position > 4095) return Reply(Result::INVALID_ARGUMENT, id);
+    const std::uint8_t data[] = {static_cast<std::uint8_t>(position),
+                               static_cast<std::uint8_t>(position >> 8)};
+    return writeRegister(id, 0x2a, data, sizeof(data), response);
+}
 STServo::Reply STServo::setId(std::uint8_t id, std::uint8_t new_id) {
     if (id > MaxId || new_id > MaxId) return Reply(Result::INVALID_ARGUMENT, id);
     return writeRegister(id, 0x05, &new_id, 1, WriteResponse::None);

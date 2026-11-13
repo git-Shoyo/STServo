@@ -7,6 +7,7 @@
 | トルクON | `bus.setTorqueEnabled(id, true)` | 0x28 = 1 |
 | トルクOFF | `bus.setTorqueEnabled(id, false)` | 0x28 = 0 |
 | 位置モード | `bus.setPositionMode(id)` | 0x21 = 0 |
+| 目標位置 | `bus.setPosition(id, position)` | 0x2A～0x2B |
 | ID変更 | `bus.setId(old_id, new_id)` | 0x05 = new_id |
 | EEPROM解除 | `bus.setEepromLocked(id, false)` | 0x37 = 0 |
 | EEPROM再ロック | `bus.setEepromLocked(id, true)` | 0x37 = 1 |
@@ -27,13 +28,32 @@ WRITE応答レベル（0x08）が1なら、`setId()`以外では最後の引数�
 2. `setEepromLocked(id, false)` でEEPROMへの保存を有効にする。
 3. `setPositionMode(id)` を実行し、0x21が0か読み戻す。
 4. `setEepromLocked(id, true)` で再ロックする。途中で失敗しても再ロックを試みる。
-5. `setVelocity(id, speed)` と `writeRegister(id, 0x2A, target, 2)` で移動速度・目標位置を設定する。
+5. `setVelocity(id, speed)` と `setPosition(id, position)` で移動速度・目標位置を設定する。
 6. 設定成功を確認してから `setTorqueEnabled(id, true)` で動作を開始する。
 
 `positionModeExample(bus, id)` は手順1～4を実装しています。成功後もトルクはOFFです。
 モード関数自体はトルク・EEPROMロック・目標値・角度制限・分解能を変更しません。
 通常の分解能1・単回転設定では目標位置0～4095、2048が約180°です。
 設定を保存する処理は制御ループの外で実行してください。
+
+## 目標位置の指定
+
+位置モード設定後、`bus.setPosition(id, 2048)` で目標位置を送信します。
+引数は0～4095で、範囲外は送信せず `INVALID_ARGUMENT` を返します。
+内部で2バイトのリトルエンディアンに変換します。多回転・符号付き目標には `writeRegister()` を使ってください。
+この関数自体は動作モード、移動速度、トルク、角度制限、分解能を変更しません。
+
+```cpp
+// 位置モード・トルクON・WRITE応答レベル1を設定済みの場合
+const auto r = bus.setPosition(1, 2048, STServo::WriteResponse::Required);
+if (!r.ok() || !r.status_received || r.servo_error != 0) {
+    // 通信失敗またはサーボ異常を処理する。
+}
+```
+
+動作中も同じ関数で目標を更新でき、毎回トルクを切る必要はありません。
+正常ACKは指令への応答であり、到達を意味しません。到達確認には現在位置などを読み取ります。
+応答レベル0の場合はACKを要求せず、0x2Aから2バイトを読んで目標レジスタを確認してください。
 
 ## ID変更の手順
 

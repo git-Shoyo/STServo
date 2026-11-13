@@ -43,3 +43,10 @@ bool changeIdExample(STServo& bus, std::uint8_t old_id, std::uint8_t new_id) {
     bus.setEepromLocked(new_id, true);
     return false;
 }
+
+// 位置モード設定済み・WRITE応答レベル1を前提とする。正常ACKは到達確認ではない。
+// この例は目標位置を設定するだけで、トルクON/OFFや移動速度は変更しない。
+bool positionTargetExample(STServo& bus, std::uint8_t id, std::uint16_t position) {
+    const auto r = bus.setPosition(id, position, STServo::WriteResponse::Required);
+    return r.ok() && r.status_received && r.servo_error == 0;
+}
