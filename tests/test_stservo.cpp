@@ -95,6 +95,42 @@ static void writes_and_ack_policy() {
     r=bus.writeRegister(254,0x21,&value,1); CHECK(r.ok() && !r.status_received);
     CHECK(bus.writeRegister(254,0x21,&value,1,STServo::WriteResponse::Required).result==Result::INVALID_ARGUMENT);
 }
+static void control_register_helpers() {
+    Fake f; STServo bus(f);
+    CHECK(bus.setTorqueEnabled(1,true).ok());
+    CHECK(f.writes.back()==Bytes({255,255,1,4,3,0x28,1,0xce}));
+    f.scripts={status(2)};
+    const auto off=bus.setTorqueEnabled(2,false,STServo::WriteResponse::Required);
+    CHECK(off.ok() && off.status_received && off.servo_error==0);
+    CHECK(f.writes.back()==Bytes({255,255,2,4,3,0x28,0,0xce}));
+    f.scripts={status(1,8)};
+    const auto mode=bus.setPositionMode(1,STServo::WriteResponse::Required);
+    CHECK(mode.ok() && mode.status_received && mode.servo_error==8);
+    CHECK(f.writes.back()==Bytes({255,255,1,4,3,0x21,0,0xd6}));
+    CHECK(bus.setPositionMode(254).ok());
+    CHECK(bus.setTorqueEnabled(254,true,STServo::WriteResponse::Required).result==Result::INVALID_ARGUMENT);
+    CHECK(bus.setEepromLocked(1,false).ok()); CHECK(f.writes.back()[5]==0x37 && f.writes.back()[6]==0);
+    CHECK(bus.setEepromLocked(1,true).ok()); CHECK(f.writes.back()[6]==1);
+}
+static void id_change_validation_and_readback() {
+    Fake f; STServo bus(f);
+    CHECK(bus.setId(1,2).ok());
+    CHECK(f.writes.back()==Bytes({255,255,1,4,3,5,2,0xf0}));
+    CHECK(f.now==0); // ID-changing WRITE deliberately never waits for an ACK.
+    f.scripts={join(status(1),join(status(2),status(2,0,{2})))};
+    std::uint8_t actual=99;
+    const auto r=bus.readRegister(2,5,&actual,1);
+    CHECK(r.ok() && r.status_received && actual==2);
+    CHECK(bus.setId(0,253).ok()); CHECK(bus.setId(253,0).ok());
+    const auto count=f.writes.size();
+    CHECK(bus.setId(254,2).result==Result::INVALID_ARGUMENT);
+    CHECK(bus.setId(255,2).result==Result::INVALID_ARGUMENT);
+    CHECK(bus.setId(1,254).result==Result::INVALID_ARGUMENT);
+    CHECK(bus.setId(1,255).result==Result::INVALID_ARGUMENT);
+    CHECK(f.writes.size()==count);
+    f.echo=true; bus.setEchoMode(STServo::EchoMode::LocalEcho);
+    CHECK(bus.setId(1,2).ok()); CHECK(f.position==f.pending.size());
+}
 static void sync_velocity_golden_packet() {
     Fake f; STServo bus(f); const std::uint8_t ids[]={1,2}; const std::int32_t values[]={500,-500};
     CHECK(bus.syncSetVelocity(ids,values,2)==Result::OK);
@@ -191,6 +227,7 @@ int main() {
         {"multi ID result isolation",multi_id_results}, {"noise/other ID/fragmentation",other_id_noise_and_fragments},
         {"checksum/length recovery",checksum_and_length_recovery}, {"timeout/tick wrap",timeout_wrap_and_wrong_id},
         {"read/error output commit",read_commit_and_servo_error}, {"write/ACK policy",writes_and_ack_policy},
+        {"control helpers",control_register_helpers}, {"ID change/readback",id_change_validation_and_readback},
         {"sync velocity wire packet",sync_velocity_golden_packet}, {"sync validation",sync_validation},
         {"signed velocity limits",signed_velocity_limits}, {"echo/real servo ERROR=1",echo_mode_and_real_error_one},
         {"no-ACK local echo drain",local_echo_no_ack_is_consumed}, {"transport failures",transport_failures}, {"argument boundaries",invalid_arguments},

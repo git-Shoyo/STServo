@@ -1,4 +1,4 @@
-/** @file stservo.cpp @brief FT-SCS framing and synchronous multi-ID transactions. */
+/** @file stservo.cpp @brief FT-SCSのフレーム処理と、複数IDへの同期的な通信処理。 */
 #include "STServo/stservo.hpp"
 #include <cstring>
 
@@ -109,6 +109,22 @@ STServo::Result STServo::syncWriteRegister(std::uint8_t address, std::uint8_t wi
     frame[3] = static_cast<std::uint8_t>(position - 3);
     genCheckSum(frame, position + 1);
     return exchange(BroadcastId, frame, position + 1, false, 0, nullptr).result;
+}
+STServo::Reply STServo::setTorqueEnabled(std::uint8_t id, bool enabled, WriteResponse response) {
+    const std::uint8_t value = enabled ? 1 : 0;
+    return writeRegister(id, 0x28, &value, 1, response);
+}
+STServo::Reply STServo::setPositionMode(std::uint8_t id, WriteResponse response) {
+    const std::uint8_t mode = 0;
+    return writeRegister(id, 0x21, &mode, 1, response);
+}
+STServo::Reply STServo::setId(std::uint8_t id, std::uint8_t new_id) {
+    if (id > MaxId || new_id > MaxId) return Reply(Result::INVALID_ARGUMENT, id);
+    return writeRegister(id, 0x05, &new_id, 1, WriteResponse::None);
+}
+STServo::Reply STServo::setEepromLocked(std::uint8_t id, bool locked, WriteResponse response) {
+    const std::uint8_t value = locked ? 1 : 0;
+    return writeRegister(id, 0x37, &value, 1, response);
 }
 STServo::Reply STServo::setVelocityMode(std::uint8_t id, WriteResponse response) {
     const std::uint8_t mode = 1;

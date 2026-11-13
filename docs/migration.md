@@ -37,4 +37,4 @@ ACKなしWRITEは `result == OK` でも `status_received == false` です。
 旧サンプルの動作モード書き込みや速度指令は自動実行しません。
 既存APIのSTS速度レジスタ/符号形式は維持していますが、実際の動作は使用機種の制御表と照合してください。
 
-旧 `sts_exchange(速度)` が新APIでID指定と解釈されないよう、別名の `sts_exchange` もID・速度の2引数を必須にしています。停止は `setVelocity(id, 0)` です。
+旧 `sts_exchange(速度)` が新APIでID指定と解釈されないよう、別名の `sts_exchange` もID・速度の2引数を必須にしています。速度モードの停止はPhase（0x12）BIT3=0を確認した上で `setVelocity(id, 0)` を使います。BIT3=1では速度0が最高速度を意味するため、設定を確認してください。

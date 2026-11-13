@@ -97,7 +97,7 @@ Linux PTY検証は実機サーボ・Pi 5のUARTでの電気的な動作確認を
 
 ## Doxygen
 
-公開APIはDoxygenコメント付きです。Doxygenをインストールした環境で:
+公開API・通信アダプターの説明と、生成される画面の見出しは日本語です。入力文字コードはUTF-8です。Doxygenをインストールした環境で:
 
 ```sh
 doxygen Doxyfile
@@ -105,8 +105,22 @@ doxygen Doxyfile
 cmake --build build/linux --target docs
 ```
 
+Doxygen 1.9.8では日本語翻訳が古い旨の警告が出ます。APIの説明は日本語ですが、自動生成される定型文の一部は英語のままになる場合があります。
+
 生成先は `build/docs/html/index.html` です。README、移植手順、Raspberry Pi手順も含みます。
 共通コードにHALヘッダー・OS API・ログ出力・動的メモリ確保は含めていません。
 
 ワークスペース全体を使う場合は、`doxygen Doxyfile.stm32` またはCMakeの `docs-stm32` ターゲットで
 STM32アダプターも含めたAPIを生成できます。出力は `build/docs-stm32/html/index.html` です。
+
+## 最小の設定・現在値・目標値の例
+
+[最小コード](examples/raspberry_pi/minimal_control.cpp) は、応答設定と動作モードの読取、
+必要時だけのEEPROM書込・再ロック・読戻し確認、トルク制御、現在位置/速度の読取を含みます。
+使用例は [最小制御手順](docs/minimal-control.md) を参照してください。
+
+## トルク・位置モード・ID変更
+
+`setTorqueEnabled(id, bool)`、`setPositionMode(id)`、`setId(old_id, new_id)`、
+`setEepromLocked(id, bool)` を使用できます。
+[使用手順と応答確認](docs/control-setup.md)、[コンパイル可能な使用例](examples/control_setup.cpp) を参照してください。

@@ -1,4 +1,4 @@
-/** @file stservo_posix.cpp @brief Nonblocking Linux serial I/O and monotonic time. */
+/** @file stservo_posix.cpp @brief Linuxのノンブロッキングシリアル入出力と単調増加時刻。 */
 #include "stservo_posix.hpp"
 #include <cerrno>
 #include <chrono>
