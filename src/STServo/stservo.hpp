@@ -142,6 +142,17 @@ public:
      * 角度制限・分解能は変更しません。保存にはEEPROMの解除・再ロックが必要です。
      */
     Reply setPositionMode(std::uint8_t id, WriteResponse response = WriteResponse::None);
+    /** @brief 現在の軸位置を基準位置（内部値2048）として校正・保存します。
+     * @param id 対象の個別ID（0～253）。ブロードキャストは拒否します。
+     * @param response サーボの応答設定に合わせたACK方針。
+     * @return 校正指令の通信結果。校正結果は現在位置レジスタ0x38で確認してください。
+     * @details STSの標準校正指令として0x28へ128を書き込みます。軸を移動させる指令ではありません。
+     * オフセットはサーボのファームウェアが計算・保存します。手動のEEPROM解除は不要です。
+     * @warning 内部の位置値は0ではなく2048になります。トルクOFF・無負荷・静止状態で実行し、
+     * 校正後に目標を2048へ更新してからトルクONにしてください。既存の目標値・角度制限の
+     * 物理的な意味も変わります。設定時のみ実行し、制御ループで繰り返さないでください。
+     */
+    Reply setOrigin(std::uint8_t id, WriteResponse response = WriteResponse::None);
     /** @brief 単回転の目標位置をレジスタ0x2a/0x2bへ書き込みます。
      * @param id 宛先ID。ACK不要の場合はブロードキャストも使用できます。
      * @param position 目標位置（0～4095）。範囲外は送信せずINVALID_ARGUMENTを返します。

@@ -50,3 +50,20 @@ bool positionTargetExample(STServo& bus, std::uint8_t id, std::uint16_t position
     const auto r = bus.setPosition(id, position, STServo::WriteResponse::Required);
     return r.ok() && r.status_received && r.servo_error == 0;
 }
+
+// 無負荷・静止状態で呼び出す。原点の内部値は2048。成功後もトルクはOFF。
+// WRITE応答レベル0/1の両方に対応する。失敗時は自動で再校正しない。
+bool originExample(STServo& bus, std::uint8_t id) {
+    if (id > STServo::MaxId || !torqueExample(bus, id, false)) return false;
+    if (!bus.setOrigin(id).ok()) return false;
+    std::uint8_t position[2] = {};
+    const auto r = bus.readRegister(id, 0x38, position, 2);
+    if (!r.ok() || !r.status_received || r.servo_error != 0 ||
+        position[0] != 0 || position[1] != 8) return false;
+    // 古い座標系の目標を使わないよう、新しい基準位置を目標に設定する。
+    if (!bus.setPosition(id, 2048).ok()) return false;
+    std::uint8_t target[2] = {};
+    const auto goal = bus.readRegister(id, 0x2a, target, 2);
+    return goal.ok() && goal.status_received && goal.servo_error == 0 &&
+           target[0] == 0 && target[1] == 8;
+}

@@ -112,6 +112,30 @@ static void control_register_helpers() {
     CHECK(bus.setEepromLocked(1,false).ok()); CHECK(f.writes.back()[5]==0x37 && f.writes.back()[6]==0);
     CHECK(bus.setEepromLocked(1,true).ok()); CHECK(f.writes.back()[6]==1);
 }
+static void origin_calibration() {
+    Fake f; STServo bus(f);
+    auto r=bus.setOrigin(1);
+    CHECK(r.ok() && !r.status_received);
+    CHECK(f.writes.back()==Bytes({255,255,1,4,3,0x28,128,0x4f}));
+    f.scripts={status(2)};
+    r=bus.setOrigin(2,STServo::WriteResponse::Required);
+    CHECK(r.ok() && r.status_received && !r.servo_error && r.id==2);
+    f.scripts={status(1,8)};
+    r=bus.setOrigin(1,STServo::WriteResponse::Required);
+    CHECK(r.ok() && r.status_received && r.servo_error==8);
+    CHECK(bus.setOrigin(0).ok()); CHECK(bus.setOrigin(253).ok());
+    const auto count=f.writes.size();
+    CHECK(bus.setOrigin(254).result==Result::INVALID_ARGUMENT);
+    CHECK(bus.setOrigin(255).result==Result::INVALID_ARGUMENT);
+    CHECK(f.writes.size()==count);
+    f.echo=true; bus.setEchoMode(STServo::EchoMode::LocalEcho);
+    CHECK(bus.setOrigin(1).ok()); CHECK(f.position==f.pending.size());
+    f.scripts={status(1,0,{0,8})}; std::uint8_t position[2]={};
+    r=bus.readRegister(1,0x38,position,2);
+    CHECK(r.ok() && r.status_received && position[0]==0 && position[1]==8);
+    f.write_ok=false;
+    CHECK(bus.setOrigin(1).result==Result::TRANSPORT_ERROR);
+}
 static void position_targets() {
     Fake f; STServo bus(f);
     auto r=bus.setPosition(1,2048);
@@ -252,7 +276,7 @@ int main() {
         {"multi ID result isolation",multi_id_results}, {"noise/other ID/fragmentation",other_id_noise_and_fragments},
         {"checksum/length recovery",checksum_and_length_recovery}, {"timeout/tick wrap",timeout_wrap_and_wrong_id},
         {"read/error output commit",read_commit_and_servo_error}, {"write/ACK policy",writes_and_ack_policy},
-        {"control helpers",control_register_helpers}, {"position targets",position_targets}, {"ID change/readback",id_change_validation_and_readback},
+        {"control helpers",control_register_helpers}, {"position targets",position_targets}, {"origin calibration",origin_calibration}, {"ID change/readback",id_change_validation_and_readback},
         {"sync velocity wire packet",sync_velocity_golden_packet}, {"sync validation",sync_validation},
         {"signed velocity limits",signed_velocity_limits}, {"echo/real servo ERROR=1",echo_mode_and_real_error_one},
         {"no-ACK local echo drain",local_echo_no_ack_is_consumed}, {"transport failures",transport_failures}, {"argument boundaries",invalid_arguments},

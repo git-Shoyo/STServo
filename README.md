@@ -39,6 +39,7 @@ if (first.ok() && first.status_received && first.servo_error == 0) {
 | `readRegister(id, address, output, size)` | `Reply` | 連続レジスタ読取 |
 | `writeRegister(id, address, data, size, policy)` | `Reply` | WRITE。既定はACKを待たない |
 | `setVelocityMode(id, policy)` | `Reply` | STSの速度モード設定 |
+| `setOrigin(id, policy)` | `Reply` | 現在位置を基準位置（内部値2048）として校正・保存 |
 | `setPosition(id, position, policy)` | `Reply` | 単回転目標位置（0～4095）の送信 |
 | `setVelocity(id, signed_speed, policy)` | `Reply` | 符号付き速度の送信 |
 | `syncWriteRegister(address, width, ids, data, count)` | `Result` | 複数IDを1フレームで更新 |
@@ -127,3 +128,6 @@ STM32アダプターも含めたAPIを生成できます。出力は `build/docs
 [使用手順と応答確認](docs/control-setup.md)、[コンパイル可能な使用例](examples/control_setup.cpp) を参照してください。
 
 位置モードの目標は `bus.setPosition(id, 2048)` で指定できます。通常の分解能1では約180°です。
+
+現在の軸位置を基準にするには `bus.setOrigin(id)` を使います。校正後の内部値は2048です。
+無負荷・静止・トルクOFFで実行してください。[校正手順](docs/control-setup.md)を参照してください。
